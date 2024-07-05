@@ -1,0 +1,3 @@
+# Dossiers de jupyter notebook et cache Python
+.ipynb_checkpoints/
+__pycache__/

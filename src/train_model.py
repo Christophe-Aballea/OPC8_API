@@ -1,0 +1,168 @@
+import pickle
+import pandas as pd
+from sklearn.model_selection import StratifiedKFold
+import lightgbm as lgb
+from lightgbm import early_stopping
+import numpy as np
+import gc
+import os
+from utils.preprocessing import Preprocessor
+from sklearn.metrics import confusion_matrix
+import shap
+
+
+def business_score(y_true, y_pred):
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel().tolist()
+    score = 1 - ((10 * fn + fp) / (len(y_true) * 10))
+    return score
+
+
+def find_optimal_threshold(y_true, y_proba):
+    thresholds = np.linspace(0, 1, 101)
+    scores = [business_score(y_true, (y_proba > thresh).astype(int)) for thresh in thresholds]
+    best_threshold = thresholds[np.argmax(scores)]
+    best_score = max(scores)
+
+    fine_thresholds = np.linspace(best_threshold - 0.01, best_threshold + 0.01, 21)
+    fine_thresholds = [t for t in fine_thresholds if 0 <= t <= 1]
+    fine_scores = [business_score(y_true, (y_proba > thresh).astype(int)) for thresh in fine_thresholds]
+    best_threshold = fine_thresholds[np.argmax(fine_scores)]
+    best_score = max(fine_scores)
+
+    return best_threshold, best_score
+
+
+def model(features, labels, n_folds=5):
+    feature_names = list(features.columns)
+    features = np.array(features)
+    
+    k_fold = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=50)
+    out_of_fold = np.zeros(features.shape[0])
+    best_thresholds = []
+    valid_scores = []
+    train_scores = []
+    best_model = None
+    best_valid_score = -np.inf
+    
+    for train_indices, valid_indices in k_fold.split(features, labels):
+        train_features, train_labels = features[train_indices], labels[train_indices]
+        valid_features, valid_labels = features[valid_indices], labels[valid_indices]
+        
+        model = lgb.LGBMClassifier(
+            n_estimators=10000,
+            objective='binary',
+            class_weight='balanced',
+            learning_rate=0.05,
+            reg_alpha=0.1,
+            reg_lambda=0.1,
+            subsample=0.8,
+            n_jobs=-1,
+            random_state=50,
+            force_col_wise=True
+        )
+        
+        model.fit(
+            train_features, train_labels,
+            eval_metric='auc',
+            eval_set=[(valid_features, valid_labels), (train_features, train_labels)],
+            eval_names=['valid', 'train'],
+            categorical_feature='auto',
+            callbacks=[early_stopping(stopping_rounds=100)]
+        )
+        
+        best_iteration = model.best_iteration_
+        out_of_fold[valid_indices] = model.predict_proba(valid_features, num_iteration=best_iteration)[:, 1]
+        
+        best_threshold, _ = find_optimal_threshold(valid_labels, out_of_fold[valid_indices])
+        best_thresholds.append(best_threshold)
+        
+        valid_pred_binary = (out_of_fold[valid_indices] > best_threshold).astype(int)
+        train_pred_binary = (model.predict_proba(train_features, num_iteration=best_iteration)[:, 1] > best_threshold).astype(int)
+        
+        valid_score = business_score(valid_labels, valid_pred_binary)
+        train_score = business_score(train_labels, train_pred_binary)
+        
+        valid_scores.append(valid_score)
+        train_scores.append(train_score)
+        
+        # Enregistrez le meilleur modèle basé sur la validation score
+        if valid_score > best_valid_score:
+            best_valid_score = valid_score
+            best_model = model
+        
+        gc.enable()
+        del train_features, valid_features
+        gc.collect()
+    
+    best_threshold_overall, valid_business_score = find_optimal_threshold(labels, out_of_fold)
+    best_thresholds.append(best_threshold_overall)
+    
+    valid_scores.append(valid_business_score)
+    train_scores.append(np.mean(train_scores))
+    
+    fold_names = list(range(n_folds))
+    fold_names.append('overall')
+    
+    metrics = pd.DataFrame({
+        'fold': fold_names,
+        'train': train_scores,
+        'valid': valid_scores,
+        'best_threshold': best_thresholds
+    })
+    
+    return metrics, best_threshold_overall, best_model
+
+
+# Emplacement des fichiers
+base_dir = os.path.dirname(os.path.abspath(__file__))
+app_train_path = os.path.join(base_dir, '..', 'data', 'raw', 'application_train.csv')
+preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preprocessor.pkl')
+model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
+best_threshold_path = os.path.join(base_dir, '..', 'data', 'processed', 'best_threshold.txt')
+global_importance_path = os.path.join(base_dir, '..', 'data', 'processed', 'global_importance.pkl')
+
+# Chargement des sonnées brutes
+print("Chargement des données...")
+app_train = pd.read_csv(app_train_path)
+
+# Préprocess
+print("Preprocessing...")
+preprocessor = Preprocessor()
+app_train_preprocessed = preprocessor.fit_transform(app_train.drop(columns=['TARGET', 'SK_ID_CURR']))
+
+train_labels = app_train['TARGET']
+
+# Entraînement du modèle et calcul du seuil de classification
+print("Entraînement du modèle et calcul du seuil de classification...")
+metrics, best_threshold, best_model = model(app_train_preprocessed, train_labels)
+
+print(f"Meilleur seuil de classification : {best_threshold}")
+
+# Sauvegarde processor
+print("Sauvegarde du modèle...")
+with open(preprocessor_path, 'wb') as f:
+    pickle.dump(preprocessor, f)
+
+# Sauvegarde modèle
+with open(model_path, 'wb') as model_file:
+    pickle.dump(best_model, model_file)
+
+# Sauvegarde seuil de classification
+with open(best_threshold_path, 'w') as threshold_file:
+    threshold_file.write(str(best_threshold))
+
+# Feature importance globale
+print("Calcul feature importance globale..")
+explainer = shap.TreeExplainer(best_model)
+shap_values = np.array(explainer.shap_values(app_train_preprocessed))
+
+# Moyenne des valeurs SHAP pour chaque feature
+global_importance = np.mean(shap_values, axis=0)
+
+# Création d'un DataFrame
+global_importance_df = pd.DataFrame({'Feature': app_train_preprocessed.columns, 'Global importance': global_importance})
+
+# Sauvegarde feature importance globale
+print("Sauvegarde feature importance globale...")
+with open(global_importance_path, 'wb') as f:
+    pickle.dump(global_importance_df, f)
