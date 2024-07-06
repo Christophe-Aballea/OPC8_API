@@ -1,5 +1,5 @@
 import pickle
-import joblib
+# import joblib
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 import lightgbm as lgb
@@ -175,7 +175,15 @@ app_train = pd.read_csv(app_train_path)
 # Préprocess
 print("Preprocessing...")
 preprocessor = Preprocessor()
-app_train_preprocessed = preprocessor.fit_transform(app_train.drop(columns=['TARGET', 'SK_ID_CURR']))
+preprocessor.fit(app_train.drop(columns=['TARGET', 'SK_ID_CURR']))
+
+# Sauvegarde processor
+print("Sauvegarde du modèle...")
+with open(preprocessor_path, 'wb') as f:
+    pickle.dump(preprocessor, f)
+
+
+app_train_preprocessed = preprocessor.transform(app_train.drop(columns=['TARGET', 'SK_ID_CURR']))
 
 train_labels = app_train['TARGET']
 
@@ -185,10 +193,7 @@ metrics, best_threshold, best_model = model(app_train_preprocessed, train_labels
 
 print(f"Meilleur seuil de classification : {best_threshold}")
 
-# Sauvegarde processor
-print("Sauvegarde du modèle...")
-joblib.dump(preprocessor, preprocessor_path)
-
+    
 # Sauvegarde modèle
 with open(model_path, 'wb') as model_file:
     pickle.dump(best_model, model_file)
