@@ -1,14 +1,15 @@
 import os
-from flask import Flask, request, jsonify
-import pickle
 import pandas as pd
 import numpy as np
+from flask import Flask, request, jsonify
+import pickle
 import shap
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder
-import numpy as np
 
+# Initialisation Flask
 app = Flask(__name__)
+
 
 class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(self):
@@ -55,6 +56,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         
         return X
 
+
 def custom_load(pickle_file, class_dict):
     class CustomUnpickler(pickle.Unpickler):
         def find_class(self, module, name):
@@ -98,4 +100,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
