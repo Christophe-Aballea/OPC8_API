@@ -4,5 +4,5 @@ scikit-learn==1.5.0
 lightgbm==4.4.0
 flask==3.0.3
 shap==0.46.0
-gunicorn
-requests
+gunicorn==22.0.0
+requests==2.32.3

@@ -4,7 +4,7 @@ import pickle
 import pandas as pd
 import numpy as np
 import shap
-from src.utils.preprocessing import Preprocessor
+from utils.preprocessing import Preprocessor
 
 app = Flask(__name__)
 
