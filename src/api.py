@@ -69,10 +69,6 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preprocessor.pkl')
 model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
 
-def custom_load(path):
-    with open(path, 'rb') as file:
-        return pickle.load(file, fix_imports=True, encoding="bytes", errors="strict")
-
 # Chargement preprocessor et model
 with open(model_path, 'rb') as model_file:
     best_model = pickle.load(model_file)
