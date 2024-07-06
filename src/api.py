@@ -1,7 +1,6 @@
 import os
 from flask import Flask, request, jsonify
 import pickle
-import joblib
 import pandas as pd
 import numpy as np
 import shap
@@ -55,6 +54,16 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         
         return X
 
+def custom_load(pickle_file, class_dict):
+    class CustomUnpickler(pickle.Unpickler):
+        def find_class(self, module, name):
+            if name in class_dict:
+                return class_dict[name]
+            return super().find_class(module, name)
+    
+    return CustomUnpickler(pickle_file).load()
+
+
 # Emplacement des fichiers
 base_dir = os.path.dirname(os.path.abspath(__file__))
 preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preprocessor.pkl')
@@ -68,7 +77,8 @@ def custom_load(path):
 with open(model_path, 'rb') as model_file:
     best_model = pickle.load(model_file)
 
-preprocessor = joblib.load(preprocessor_path)
+with open(preprocessor_path, 'rb') as f:
+    preprocessor = custom_load(f, {'Preprocessor': Preprocessor})
 
 # Initialisation SHAP explainer
 explainer = shap.TreeExplainer(best_model)
