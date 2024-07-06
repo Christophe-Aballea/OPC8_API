@@ -1,2 +1,4 @@
 # Fichiers et dossiers à ne pas déployer sur Heroku
 data/raw/application_train.csv
+src/train_model.py
+src/utils

@@ -32,17 +32,17 @@ jobs:
 #      run: |
 #        python src/train_model.py
 
-    - name: Commit and push changes
-      run: |
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git config --global user.name "github-actions[bot]"
-        if [ -n "$(git status --porcelain=data/processed/model.pkl)" ] || [ -n "$(git status --porcelain=data/processed/preprocessor.pkl)" ]; then
-          git add data/processed/model.pkl data/processed/preprocessor.pkl data/processed/global_importance.pkl data/processed/best_threshold.txt
-          git commit -m "Mise à jour preprocessor, model, best_threshold et global_importance [CI]"
-          git push
-        else
-          echo "preprocessor.pkl et model.pkl inchangés."
-        fi
+#    - name: Commit and push changes
+#      run: |
+#        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+#        git config --global user.name "github-actions[bot]"
+#        if [ -n "$(git status --porcelain=data/processed/model.pkl)" ] || [ -n "$(git status --porcelain=data/processed/preprocessor.pkl)" ]; then
+#          git add data/processed/model.pkl data/processed/preprocessor.pkl data/processed/global_importance.pkl data/processed/best_threshold.txt
+#          git commit -m "Mise à jour preprocessor, model, best_threshold et global_importance [CI]"
+#          git push
+#        else
+#          echo "preprocessor.pkl et model.pkl inchangés."
+#        fi
 
     - name: Delete hooks
       run: |
@@ -54,12 +54,12 @@ jobs:
           echo "Aucun pre-push hook à supprimer."
         fi
 
-#    - name: Deploy to Heroku
-#      uses: akhileshns/heroku-deploy@v3.13.15
-#      with:
-#        heroku_api_key: ${{secrets.HEROKU_API_TOKEN}}
-#        heroku_app_name:  ${{secrets.HEROKU_API_NAME}}
-#        heroku_email: ${{secrets.HEROKU_EMAIL}}
+    - name: Deploy to Heroku
+      uses: akhileshns/heroku-deploy@v3.13.15
+      with:
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        heroku_app_name:  ${{secrets.HEROKU_APP_NAME}}
+        heroku_email: ${{secrets.HEROKU_EMAIL}}
      
 #    - name: Run tests
 #      run: python -m unittest discover -s tests
