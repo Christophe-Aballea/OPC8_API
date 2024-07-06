@@ -17,6 +17,7 @@ import numpy as np
 class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(self):
         self.le_dict = {}
+        self.columns = None
         
     def fit(self, X, y=None):
         # Fit du label encoder pour les features catégorielles 
@@ -25,10 +26,16 @@ class Preprocessor(BaseEstimator, TransformerMixin):
                 le = LabelEncoder()
                 le.fit(X[col])
                 self.le_dict[col] = le
-        
+        X_transformed = self._transform(X)
+        self.columns = X_transformed.columns
         return self
 
     def transform(self, X):
+        X_transformed = self._transform(X)
+        X_transformed = X_transformed.reindex(columns=self.columns, fill_value=0)
+        return X_transformed
+    
+    def _transform(self, X):
         X = X.copy()
         
         # Label encoding
@@ -37,13 +44,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         
         # One-hot encoding
         X = pd.get_dummies(X)
-        
-        # Alignement train et test
-        if hasattr(self, 'columns'):
-            X = X.reindex(columns=self.columns, fill_value=0)
-        else:
-            self.columns = X.columns
-        
+              
         # Dates en anomalies
         X['DAYS_EMPLOYED_ANOM'] = X["DAYS_EMPLOYED"] == 365243
         X['DAYS_EMPLOYED'] = X['DAYS_EMPLOYED'].replace({365243: np.nan})
