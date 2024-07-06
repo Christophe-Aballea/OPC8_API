@@ -5,3 +5,4 @@ lightgbm==4.4.0
 flask==3.0.3
 shap==0.46.0
 gunicorn
+requests
