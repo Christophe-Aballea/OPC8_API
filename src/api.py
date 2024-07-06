@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import shap
 from utils.preprocessing import Preprocessor
+import waitress
 
 app = Flask(__name__)
 
@@ -41,4 +42,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    waitress.serve(app, host='127.0.0.1', port=5000)
