@@ -13,10 +13,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Git LFS
-      run: |
-        git lfs install
-        git lfs pull
+#    - name: Set up Git LFS
+#      run: |
+#        git lfs install
+#        git lfs pull
 
     - name: Set up Python 3.12.4
       uses: actions/setup-python@v5
@@ -44,15 +44,15 @@ jobs:
 #          echo "preprocessor.pkl et model.pkl inchangés."
 #        fi
 
-    - name: Delete hooks
-      run: |
-        if [ -f .git/hooks/pre-push ]; then
-          rm .git/hooks/pre-push
-          git commit -m "Suppression heroku hooks [CI]" --allow-empty
-          git push
-        else
-          echo "Aucun pre-push hook à supprimer."
-        fi
+#    - name: Delete hooks
+#      run: |
+#        if [ -f .git/hooks/pre-push ]; then
+#          rm .git/hooks/pre-push
+#          git commit -m "Suppression heroku hooks [CI]" --allow-empty
+#          git push
+#        else
+#          echo "Aucun pre-push hook à supprimer."
+#        fi
 
     - name: Deploy to Heroku
       uses: akhileshns/heroku-deploy@v3.13.15
