@@ -1,4 +1,5 @@
 import pickle
+import joblib
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 import lightgbm as lgb
@@ -186,8 +187,7 @@ print(f"Meilleur seuil de classification : {best_threshold}")
 
 # Sauvegarde processor
 print("Sauvegarde du modèle...")
-with open(preprocessor_path, 'wb') as f:
-    pickle.dump(preprocessor, f)
+joblib.dump(preprocessor, preprocessor_path)
 
 # Sauvegarde modèle
 with open(model_path, 'wb') as model_file:

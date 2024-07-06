@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, jsonify
 import pickle
+import joblib
 import pandas as pd
 import numpy as np
 import shap
@@ -67,8 +68,7 @@ def custom_load(path):
 with open(model_path, 'rb') as model_file:
     best_model = pickle.load(model_file)
 
-with open(preprocessor_path, 'rb') as f:
-    preprocessor = custom_load(preprocessor_path)
+preprocessor = joblib.load(preprocessor_path)
 
 # Initialisation SHAP explainer
 explainer = shap.TreeExplainer(best_model)
