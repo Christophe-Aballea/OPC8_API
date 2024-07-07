@@ -98,25 +98,52 @@ def index():
         "documentation": "/swagger/"
     })
 
-
 # Route /predict
 @ns.route('/')
 class Prediction(Resource):
     @ns.expect(predict_model)
     def post(self):
-        data = request.json
-        df = pd.DataFrame(data['data'], columns=data['columns'])
-        df = df.replace({None: np.nan})
-        processed_data = preprocessor.transform(df)
-        prediction_proba = best_model.predict_proba(processed_data)[:, 1]
-        prediction_class = (prediction_proba >= best_threshold) * 1
-        shap_values = explainer.shap_values(processed_data)
-        return jsonify({
-            'prediction_proba': prediction_proba.tolist(),
-            'prediction_class': prediction_class.tolist(),
-            'feature_names': processed_data.columns.tolist(),
-            'feature_importance': shap_values.tolist()
-        })
+        try:
+            data = request.json
+            df = pd.DataFrame(data['data'], columns=data['columns'])
+            print("Data received for prediction:", df)
+            df = df.replace({None: np.nan})
+            processed_data = preprocessor.transform(df)
+            print("Data after preprocessing:", processed_data)
+            prediction_proba = best_model.predict_proba(processed_data)[:, 1]
+            prediction_class = (prediction_proba >= best_threshold) * 1
+            shap_values = explainer.shap_values(processed_data)
+            print("Prediction probabilities:", prediction_proba)
+            print("Prediction classes:", prediction_class)
+            return jsonify({
+                'prediction_proba': prediction_proba.tolist(),
+                'prediction_class': prediction_class.tolist(),
+                'feature_names': processed_data.columns.tolist(),
+                'feature_importance': shap_values.tolist()
+            })
+        except Exception as e:
+            print("Error during prediction:", e)
+            return jsonify({"error": str(e)}), 500
+
+
+# # Route /predict
+# @ns.route('/')
+# class Prediction(Resource):
+#     @ns.expect(predict_model)
+#     def post(self):
+#         data = request.json
+#         df = pd.DataFrame(data['data'], columns=data['columns'])
+#         df = df.replace({None: np.nan})
+#         processed_data = preprocessor.transform(df)
+#         prediction_proba = best_model.predict_proba(processed_data)[:, 1]
+#         prediction_class = (prediction_proba >= best_threshold) * 1
+#         shap_values = explainer.shap_values(processed_data)
+#         return jsonify({
+#             'prediction_proba': prediction_proba.tolist(),
+#             'prediction_class': prediction_class.tolist(),
+#             'feature_names': processed_data.columns.tolist(),
+#             'feature_importance': shap_values.tolist()
+#         })
 
 
 if __name__ == '__main__':
