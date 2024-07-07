@@ -4,3 +4,5 @@ __pycache__/
 
 data/raw/application_train.csv
 notebooks/
+
+*svg*
