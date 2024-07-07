@@ -73,6 +73,7 @@ def custom_load(pickle_file, class_dict):
 base_dir = os.path.dirname(os.path.abspath(__file__))
 preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preprocessor.pkl')
 model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
+threshold_path = os.path.join(base_dir, '..', 'data', 'processed', 'best_threshold.txt')
 
 # Chargement modèle
 with open(model_path, 'rb') as model_file:
@@ -81,6 +82,10 @@ with open(model_path, 'rb') as model_file:
 # Chargement preprocessor
 with open(preprocessor_path, 'rb') as f:
     preprocessor = custom_load(f, {'Preprocessor': Preprocessor})
+
+# Récupération du seuil de classification
+with open(threshold_path, 'r') as threshold_file:
+    best_threshold = float(threshold_file.read())
 
 # Initialisation SHAP explainer
 explainer = shap.TreeExplainer(best_model)
@@ -104,9 +109,11 @@ class Prediction(Resource):
         df = df.replace({None: np.nan})
         processed_data = preprocessor.transform(df)
         prediction_proba = best_model.predict_proba(processed_data)[:, 1]
+        prediction_class = prediction_proba >= best_threshold
         shap_values = explainer.shap_values(processed_data)
         return jsonify({
             'prediction_proba': prediction_proba.tolist(),
+            'prediction_class': prediction_class,
             'feature_names': processed_data.columns.tolist(),
             'feature_importance': shap_values.tolist()
         })

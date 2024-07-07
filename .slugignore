@@ -1,6 +1,5 @@
 # Fichiers et dossiers à ne pas déployer sur Heroku
 data/raw/application_train.csv
-data/processed/best_threshold.txt
 data/processed/global_importance.pkl
 notebooks/
 src/utils/
