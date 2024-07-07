@@ -10,11 +10,11 @@ from sklearn.preprocessing import LabelEncoder
 
 # Initialisation Flask
 app = Flask(__name__)
-api = Api(app, version='1.0', title='Credit Scoring API',
-          description='A simple Credit Scoring API',
+api = Api(app, version='1.0', title='API Credit Scoring Prêt à dépenser',
+          description='API de prédiction d\'accord/refus de crédit',
           )
 
-ns = api.namespace('predict', description='Prediction operations')
+ns = api.namespace('predict', description='Prediction')
 
 # Modèle de données pour Swagger
 predict_model = api.model('PredictionModel', {
@@ -59,6 +59,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         return X
 
 
+# Déserialisation preprocessor
 def custom_load(pickle_file, class_dict):
     class CustomUnpickler(pickle.Unpickler):
         def find_class(self, module, name):
@@ -91,14 +92,15 @@ with open(threshold_path, 'r') as threshold_file:
 explainer = shap.TreeExplainer(best_model)
 
 
+# Route '/'
 @app.route('/')
 def index():
     return jsonify({
-        "message": "Welcome to the Credit Scoring API.",
+        "message": "API Credit Scoring 'Prêt à dépenser'.",
         "documentation": "/swagger/"
     })
 
-# Route /predict
+# Route '/predict'
 @ns.route('/')
 class Prediction(Resource):
     @ns.expect(predict_model)
@@ -106,15 +108,11 @@ class Prediction(Resource):
         try:
             data = request.json
             df = pd.DataFrame(data['data'], columns=data['columns'])
-            print("Data received for prediction:", df)
             df = df.replace({None: np.nan})
             processed_data = preprocessor.transform(df)
-            print("Data after preprocessing:", processed_data)
             prediction_proba = best_model.predict_proba(processed_data)[:, 1]
             prediction_class = (prediction_proba >= best_threshold) * 1
             shap_values = explainer.shap_values(processed_data)
-            print("Prediction probabilities:", prediction_proba)
-            print("Prediction classes:", prediction_class)
             return jsonify({
                 'prediction_proba': prediction_proba.tolist(),
                 'prediction_class': prediction_class.tolist(),
@@ -122,28 +120,8 @@ class Prediction(Resource):
                 'feature_importance': shap_values.tolist()
             })
         except Exception as e:
-            print("Error during prediction:", e)
+            print("Erreur pendant la prédiction:", e)
             return jsonify({"error": str(e)}), 500
-
-
-# # Route /predict
-# @ns.route('/')
-# class Prediction(Resource):
-#     @ns.expect(predict_model)
-#     def post(self):
-#         data = request.json
-#         df = pd.DataFrame(data['data'], columns=data['columns'])
-#         df = df.replace({None: np.nan})
-#         processed_data = preprocessor.transform(df)
-#         prediction_proba = best_model.predict_proba(processed_data)[:, 1]
-#         prediction_class = (prediction_proba >= best_threshold) * 1
-#         shap_values = explainer.shap_values(processed_data)
-#         return jsonify({
-#             'prediction_proba': prediction_proba.tolist(),
-#             'prediction_class': prediction_class.tolist(),
-#             'feature_names': processed_data.columns.tolist(),
-#             'feature_importance': shap_values.tolist()
-#         })
 
 
 if __name__ == '__main__':
