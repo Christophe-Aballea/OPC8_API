@@ -109,7 +109,7 @@ class Prediction(Resource):
         df = df.replace({None: np.nan})
         processed_data = preprocessor.transform(df)
         prediction_proba = best_model.predict_proba(processed_data)[:, 1]
-        prediction_class = prediction_proba >= best_threshold
+        prediction_class = (prediction_proba >= best_threshold) * 1
         shap_values = explainer.shap_values(processed_data)
         return jsonify({
             'prediction_proba': prediction_proba.tolist(),
