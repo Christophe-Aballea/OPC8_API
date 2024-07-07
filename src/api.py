@@ -113,7 +113,7 @@ class Prediction(Resource):
         shap_values = explainer.shap_values(processed_data)
         return jsonify({
             'prediction_proba': prediction_proba.tolist(),
-            'prediction_class': prediction_class,
+            'prediction_class': [prediction_class],
             'feature_names': processed_data.columns.tolist(),
             'feature_importance': shap_values.tolist()
         })
