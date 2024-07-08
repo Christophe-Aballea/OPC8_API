@@ -95,7 +95,7 @@ explainer = shap.TreeExplainer(best_model)
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({
-        'message': 'l\'API est fonctionnelle',
+        'message': 'L\'API est fonctionnelle',
         'documentation': '/swagger'
     })
 

@@ -46,7 +46,7 @@ class TestCreditScoringAPI(unittest.TestCase):
 
         self.assertIn('message', response_json)
         self.assertIn('documentation', response_json)
-        self.assertEqual(response_json['message'], "API is healthy")
+        self.assertEqual(response_json['message'], "L'API est fonctionnelle")
 
 
 if __name__ == '__main__':
