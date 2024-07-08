@@ -4,3 +4,4 @@ data/processed/global_importance.pkl
 notebooks/
 src/utils/
 src/train_model.py
+src/test.py

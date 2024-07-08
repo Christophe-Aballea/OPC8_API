@@ -11,8 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 # Initialisation Flask
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API Credit Scoring Prêt à dépenser',
-          description='API de prédiction d\'accord/refus de crédit',
-          )
+          description='API de prédiction d\'accord/refus de crédit')
 
 ns = api.namespace('predict', description='Prediction')
 
@@ -92,6 +91,17 @@ with open(threshold_path, 'r') as threshold_file:
 explainer = shap.TreeExplainer(best_model)
 
 
+# Route pour test
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'message': 'l\'API est fonctionnelle',
+        'documentation': '/swagger'
+    })
+
+if __name__ == '__main__':
+    app.run()
+    
 # Route '/'
 @app.route('/')
 def index():

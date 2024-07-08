@@ -6,4 +6,3 @@ data/raw/application_train.csv
 notebooks/
 
 *svg*
-src/test.py
