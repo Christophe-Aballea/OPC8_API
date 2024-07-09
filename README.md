@@ -100,30 +100,28 @@ Les tests unitaires sont intégrés au workflow GitHub Actions pour être exécu
 
 ## Structure du Projet
 
-P08 - API/
-├── .github/
-│ └── workflows
-│   └── build_deploy.yml
-├── data/
-│ └── processed/
-│   ├── best_threshold.txt
-│   ├── global_importance.pkl
-│   ├── model.pkl
-│   └── preprocessor.pkl
-├── notebooks/
-│ └── test_API.ipynb
-├── src/
-│ ├── init.py
-│ ├── api.py
-│ ├── test.py
-├── .gitignore
-├── build_deploy.yml
-├── requirements.txt
-└── README.md
+P08 - API/  
+├── .github/  
+│ └── workflows  
+│   └── build_deploy.yml  # Workflow Github Actions (déploiement et tests unitaires)  
+├── data/  
+│ └── processed/   
+│   ├── best_threshold.txt  # Seuil de classification   
+│   ├── model.pkl  # Modèle de classification LightGBM entraîné  
+│   └── preprocessor.pkl  # Preprocessing et feature ingineering  
+├── notebooks/  
+│ └── test_API.ipynb  # Notebook de test de prédiction  
+├── src/  
+│ ├── init.py  
+│ ├── api.py  # Code de l'API  
+│ ├── test.py  # Tests unitaires  
+├── .gitignore  
+├── requirements.txt  # Liste des versions des librairies python à installer  
+└── README.md  # Documentation  
 
 ## Auteurs
 
-- Christophe ABALLEA - [Votre Profil GitHub](https://github.com/Christophe-Aballea)
+- Christophe ABALLEA - [Profil GitHub](https://github.com/Christophe-Aballea)
 
 ## Licence
 
