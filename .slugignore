@@ -5,3 +5,4 @@ notebooks/
 src/utils/
 src/train_model.py
 src/test.py
+README.md
