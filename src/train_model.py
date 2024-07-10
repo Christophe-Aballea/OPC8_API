@@ -208,8 +208,8 @@ print("Calcul feature importance globale..")
 explainer = shap.TreeExplainer(best_model)
 shap_values = np.array(explainer.shap_values(app_train_preprocessed))
 
-# Moyenne des valeurs SHAP pour chaque feature
-global_importance = np.mean(shap_values, axis=0)
+# Moyenne des valeurs absolues SHAP pour chaque feature
+global_importance = np.mean(np.abs(shap_values), axis=0)
 
 # Création d'un DataFrame
 global_importance_df = pd.DataFrame({'Feature': app_train_preprocessed.columns, 'Global importance': global_importance})
