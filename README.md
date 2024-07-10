@@ -54,6 +54,20 @@ Le projet déploie sur Heroku l'API de prédiction d'accord/refus de crédit de 
 
 ## API Endpoints
 
+### `GET /health`
+
+- Description : Vérifie que l'API est opérationnelle.  
+
+- Paramètres : Aucun.  
+
+- Réponse (JSON) :  
+    ```json
+    {
+      "message": "L'API est fonctionnelle.",  
+      "documentation": "/swagger"  
+    }
+    ```
+
 ### `POST /predict`
 
 - Description : Prédit la probabilité de défaut de remboursement et l'accord/refus de crédit.
@@ -95,29 +109,31 @@ Le projet déploie sur Heroku l'API de prédiction d'accord/refus de crédit de 
 
 ## Déploiement
 
-Le déploiement est automatisé avec GitHub Actions. Chaque `git push` déclenche le déploiement de l'API sur Heroku.
-Les tests unitaires sont intégrés au workflow GitHub Actions pour être exécutés sur l'API une fois déployée. 
+Le déploiement est automatisé avec GitHub Actions. Chaque `git push` déclenche le déploiement de l'API sur Heroku.  
+Les tests unitaires sont intégrés au workflow GitHub Actions pour être exécutés sur l'API une fois déployée.  
+
+
 
 ## Structure du Projet
 
 P08 - API/  
 ├── .github/  
 │ └── workflows  
-│   └── build_deploy.yml  # Workflow Github Actions (déploiement et tests unitaires)  
+│   └── build_deploy.yml     # _Workflow Github Actions (déploiement et tests unitaires)_  
 ├── data/  
 │ └── processed/   
-│   ├── best_threshold.txt  # Seuil de classification   
-│   ├── model.pkl  # Modèle de classification LightGBM entraîné  
-│   └── preprocessor.pkl  # Preprocessing et feature ingineering  
+│   ├── best_threshold.txt   # _Seuil de classification_   
+│   ├── model.pkl            # _Modèle de classification LightGBM entraîné_  
+│   └── preprocessor.pkl     # _Preprocessing et feature ingineering_  
 ├── notebooks/  
-│ └── test_API.ipynb  # Notebook de test de prédiction  
+│ └── test_API.ipynb         # _Notebook de test de prédiction_  
 ├── src/  
 │ ├── init.py  
-│ ├── api.py  # Code de l'API  
-│ ├── test.py  # Tests unitaires  
+│ ├── api.py                 # _Code de l'API_  
+│ ├── test.py                # _Tests unitaires_  
 ├── .gitignore  
-├── requirements.txt  # Liste des versions des librairies python à installer  
-└── README.md  # Documentation  
+├── requirements.txt         # _Liste des versions des librairies python à installer_  
+└── README.md                # _Documentation_  
 
 ## Auteurs
 
