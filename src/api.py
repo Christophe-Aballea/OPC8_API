@@ -55,6 +55,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         X['ANNUITY_INCOME_PERCENT'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
         X['CREDIT_TERM'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
         X['DAYS_EMPLOYED_PERCENT'] = X['DAYS_EMPLOYED'] / X['DAYS_BIRTH']
+        X = X.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+', '', x))
         return X
 
 

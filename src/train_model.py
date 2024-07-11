@@ -13,6 +13,9 @@ import shap
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
+import re
+
+FIRST_EXECUTION = False
 
 class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(self):
@@ -56,8 +59,11 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         X['ANNUITY_INCOME_PERCENT'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
         X['CREDIT_TERM'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
         X['DAYS_EMPLOYED_PERCENT'] = X['DAYS_EMPLOYED'] / X['DAYS_BIRTH']
-        
+
+        X = X.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+', '', x))
+
         return X
+
 
 def business_score(y_true, y_pred):
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel().tolist()
@@ -79,10 +85,8 @@ def find_optimal_threshold(y_true, y_proba):
 
     return best_threshold, best_score
 
-
 def model(features, labels, n_folds=5):
     feature_names = list(features.columns)
-    features = np.array(features)
     
     k_fold = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=50)
     out_of_fold = np.zeros(features.shape[0])
@@ -93,8 +97,8 @@ def model(features, labels, n_folds=5):
     best_valid_score = -np.inf
     
     for train_indices, valid_indices in k_fold.split(features, labels):
-        train_features, train_labels = features[train_indices], labels[train_indices]
-        valid_features, valid_labels = features[valid_indices], labels[valid_indices]
+        train_features, train_labels = features.iloc[train_indices], labels[train_indices]
+        valid_features, valid_labels = features.iloc[valid_indices], labels[valid_indices]
         
         model = lgb.LGBMClassifier(
             n_estimators=10000,
@@ -114,6 +118,7 @@ def model(features, labels, n_folds=5):
             eval_metric='auc',
             eval_set=[(valid_features, valid_labels), (train_features, train_labels)],
             eval_names=['valid', 'train'],
+            feature_name=feature_names,
             categorical_feature='auto',
             callbacks=[early_stopping(stopping_rounds=100)]
         )
@@ -158,20 +163,26 @@ def model(features, labels, n_folds=5):
         'best_threshold': best_thresholds
     })
     
-    return metrics, best_threshold_overall, best_model
+    # Obtenez les noms des features du modèle
+    best_feature_names = best_model.booster_.feature_name()
+    
+    return metrics, best_threshold_overall, best_model, best_feature_names
 
 
 # Emplacement des fichiers
 base_dir = os.path.dirname(os.path.abspath(__file__))
 app_train_path = os.path.join(base_dir, '..', 'data', 'raw', 'application_train.csv')
+app_test_path = os.path.join(base_dir, '..', 'data', 'raw', 'application_test.csv')
 preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preprocessor.pkl')
 model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
 best_threshold_path = os.path.join(base_dir, '..', 'data', 'processed', 'best_threshold.txt')
 global_importance_path = os.path.join(base_dir, '..', 'data', 'processed', 'global_importance.pkl')
+feature_names_path = os.path.join(base_dir, '..', 'data', 'processed', 'feature_names.pkl')
 
 # Chargement des sonnées brutes
 print("Chargement des données...")
 app_train = pd.read_csv(app_train_path)
+app_test = pd.read_csv(app_test_path)
 
 # Préprocess
 print("Preprocessing...")
@@ -190,7 +201,7 @@ train_labels = app_train['TARGET']
 
 # Entraînement du modèle et calcul du seuil de classification
 print("Entraînement du modèle et calcul du seuil de classification...")
-metrics, best_threshold, best_model = model(app_train_preprocessed, train_labels)
+metrics, best_threshold, best_model, feature_names = model(app_train_preprocessed, train_labels)
 
 print(f"Meilleur seuil de classification : {best_threshold}")
 
@@ -203,10 +214,14 @@ with open(model_path, 'wb') as model_file:
 with open(best_threshold_path, 'w') as threshold_file:
     threshold_file.write(str(best_threshold))
 
+# Sauvegarde features
+with open(feature_names_path, 'wb') as features_file:
+    pickle.dump(feature_names, features_file)
+
 # Feature importance globale
 print("Calcul feature importance globale..")
 explainer = shap.TreeExplainer(best_model)
-shap_values = np.array(explainer.shap_values(app_train_preprocessed))
+shap_values = np.array(explainer.shap_values(app_train_preprocessed[feature_names]))
 
 # Moyenne des valeurs absolues SHAP pour chaque feature
 global_importance = np.mean(np.abs(shap_values), axis=0)

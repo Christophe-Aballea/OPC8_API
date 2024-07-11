@@ -3,7 +3,8 @@
 __pycache__/
 
 data/raw/application_train.csv
-src/utils/
-src/global_importance.pkl
+data/raw/application_test.csv
+data/processed/feature_names.pkl
+data/processed/global_importance.pkl
 
-*svg*
+src/utils/
