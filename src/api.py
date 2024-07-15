@@ -5,7 +5,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_restx import Api, Resource, fields
 import pickle
-import shap
+# import shap
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder
 
@@ -110,7 +110,7 @@ with open(threshold_path, 'r') as threshold_file:
     best_threshold = float(threshold_file.read())
 
 # Initialisation SHAP explainer
-explainer = shap.TreeExplainer(best_model)
+# explainer = shap.TreeExplainer(best_model)
 
 
 # Route pour test
@@ -144,12 +144,12 @@ class Prediction(Resource):
             processed_data = preprocessor.transform(df)
             prediction_proba = best_model.predict_proba(processed_data)[:, 1]
             prediction_class = (prediction_proba >= best_threshold) * 1
-            shap_values = explainer.shap_values(processed_data)
+            # shap_values = explainer.shap_values(processed_data)
             return jsonify({
                 'prediction_proba': prediction_proba.tolist(),
                 'prediction_class': prediction_class.tolist(),
                 'feature_names': processed_data.columns.tolist(),
-                'feature_importance': shap_values.tolist()
+                # 'feature_importance': shap_values.tolist()
             })
         except Exception as e:
             print("Erreur pendant la prédiction:", e)
