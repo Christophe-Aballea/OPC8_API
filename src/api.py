@@ -27,8 +27,9 @@ class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(self):
         self.le_dict = {}
         self.columns = None
-
+        
     def fit(self, X, y=None):
+        # Fit du label encoder pour les features catégorielles 
         for col in X:
             if X[col].dtype == 'object' and len(list(X[col].unique())) <= 2:
                 le = LabelEncoder()
@@ -42,21 +43,40 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         X_transformed = self._transform(X)
         X_transformed = X_transformed.reindex(columns=self.columns, fill_value=0)
         return X_transformed
-
+    
     def _transform(self, X):
         X = X.copy()
+        
+        # Label encoding
         for col, le in self.le_dict.items():
             X[col] = le.transform(X[col])
+        
+        # One-hot encoding
         X = pd.get_dummies(X)
-        X['DAYS_EMPLOYED_ANOM'] = X["DAYS_EMPLOYED"] == 365243
+
+        # Nombres de jours négatifs -> positifs
+        X['DAYS_REGISTRATION'] = abs(X['DAYS_REGISTRATION'])
+        X['DAYS_ID_PUBLISH'] = abs(X['DAYS_ID_PUBLISH'])
+              
+        # Dates en anomalies
+        X['YEARS_EMPLOYED_ANOM'] = X["DAYS_EMPLOYED"] == 365243
         X['DAYS_EMPLOYED'] = X['DAYS_EMPLOYED'].replace({365243: np.nan})
-        X['DAYS_EMPLOYED'] = abs(X['DAYS_EMPLOYED'])
-        X['DAYS_BIRTH'] = abs(X['DAYS_BIRTH'])
+  
+        # Nombre de jours -> années
+        X['YEARS_EMPLOYED'] = abs(X['DAYS_EMPLOYED'] / 365.25)
+        X['YEARS_BIRTH'] = abs(X['DAYS_BIRTH'] / 365.25)
+        X['YEARS_LAST_PHONE_CHANGE'] = abs(X['DAYS_LAST_PHONE_CHANGE'] / 365.25)
+      
+        X = X.drop(columns=['DAYS_EMPLOYED', 'DAYS_BIRTH', 'DAYS_LAST_PHONE_CHANGE'])
+        
+        # Feature engineering
         X['CREDIT_INCOME_PERCENT'] = X['AMT_CREDIT'] / X['AMT_INCOME_TOTAL']
         X['ANNUITY_INCOME_PERCENT'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
         X['CREDIT_TERM'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
-        X['DAYS_EMPLOYED_PERCENT'] = X['DAYS_EMPLOYED'] / X['DAYS_BIRTH']
+        X['DAYS_EMPLOYED_PERCENT'] = X['YEARS_EMPLOYED'] / X['YEARS_BIRTH']
+
         X = X.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+', '', x))
+
         return X
 
 

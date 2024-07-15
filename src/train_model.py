@@ -1,13 +1,12 @@
 import pickle
-# import joblib
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedKFold
 import lightgbm as lgb
 from lightgbm import early_stopping
 import numpy as np
 import gc
 import os
-# from utils.preprocessing import Preprocessor
 from sklearn.metrics import confusion_matrix
 import shap
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -47,18 +46,27 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         
         # One-hot encoding
         X = pd.get_dummies(X)
+
+        # Nombres de jours négatifs -> positifs
+        X['DAYS_REGISTRATION'] = abs(X['DAYS_REGISTRATION'])
+        X['DAYS_ID_PUBLISH'] = abs(X['DAYS_ID_PUBLISH'])
               
         # Dates en anomalies
-        X['DAYS_EMPLOYED_ANOM'] = X["DAYS_EMPLOYED"] == 365243
+        X['YEARS_EMPLOYED_ANOM'] = X["DAYS_EMPLOYED"] == 365243
         X['DAYS_EMPLOYED'] = X['DAYS_EMPLOYED'].replace({365243: np.nan})
-        X['DAYS_EMPLOYED'] = abs(X['DAYS_EMPLOYED'])
-        X['DAYS_BIRTH'] = abs(X['DAYS_BIRTH'])
+  
+        # Nombre de jours -> années
+        X['YEARS_EMPLOYED'] = abs(X['DAYS_EMPLOYED'] / 365.25)
+        X['YEARS_BIRTH'] = abs(X['DAYS_BIRTH'] / 365.25)
+        X['YEARS_LAST_PHONE_CHANGE'] = abs(X['DAYS_LAST_PHONE_CHANGE'] / 365.25)
+      
+        X = X.drop(columns=['DAYS_EMPLOYED', 'DAYS_BIRTH', 'DAYS_LAST_PHONE_CHANGE'])
         
         # Feature engineering
         X['CREDIT_INCOME_PERCENT'] = X['AMT_CREDIT'] / X['AMT_INCOME_TOTAL']
         X['ANNUITY_INCOME_PERCENT'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
         X['CREDIT_TERM'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
-        X['DAYS_EMPLOYED_PERCENT'] = X['DAYS_EMPLOYED'] / X['DAYS_BIRTH']
+        X['DAYS_EMPLOYED_PERCENT'] = X['YEARS_EMPLOYED'] / X['YEARS_BIRTH']
 
         X = X.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+', '', x))
 
@@ -110,7 +118,8 @@ def model(features, labels, n_folds=5):
             subsample=0.8,
             n_jobs=-1,
             random_state=50,
-            force_col_wise=True
+            force_col_wise=True,
+            verbosity=-1
         )
         
         model.fit(
@@ -190,7 +199,7 @@ preprocessor = Preprocessor()
 preprocessor.fit(app_train.drop(columns=['TARGET', 'SK_ID_CURR']))
 
 # Sauvegarde processor
-print("Sauvegarde du modèle...")
+print("Sauvegarde du processor...")
 with open(preprocessor_path, 'wb') as f:
     pickle.dump(preprocessor, f)
 
@@ -219,17 +228,54 @@ with open(feature_names_path, 'wb') as features_file:
     pickle.dump(feature_names, features_file)
 
 # Feature importance globale
-print("Calcul feature importance globale..")
+print("Calcul feature importance globale...")
 explainer = shap.TreeExplainer(best_model)
-shap_values = np.array(explainer.shap_values(app_train_preprocessed[feature_names]))
+shap_values = explainer(app_train_preprocessed)
 
-# Moyenne des valeurs absolues SHAP pour chaque feature
-global_importance = np.mean(np.abs(shap_values), axis=0)
+# Génération barplot de feature importance global SHAP
+print("Génération du graphique...")
+plt.figure(dpi=300, layout='constrained')
+shap.plots.bar(shap_values, max_display=11, show=False)
 
-# Création d'un DataFrame
-global_importance_df = pd.DataFrame({'Feature': app_train_preprocessed.columns, 'Global importance': global_importance})
+# Personnalisation
+bars = plt.gca().patches
+annotations = plt.gca().texts
 
-# Sauvegarde feature importance globale
-print("Sauvegarde feature importance globale...")
-with open(global_importance_path, 'wb') as f:
-    pickle.dump(global_importance_df, f)
+# Couleur des barres et annotations
+for bar, annotation in zip(bars, annotations):
+    bar.set_color('dodgerblue')
+    annotation.set_color('dodgerblue')
+
+# Modification du texte "Sum of X other features"
+yticks = plt.gca().get_yticklabels()
+for tick in yticks:
+    if tick.get_text().startswith("Sum of"):
+        tick.set_text("Autres caractéristiques")
+plt.gca().set_yticklabels(yticks, fontsize=10)
+
+# Taille xticks
+xticks = plt.gca().get_xticklabels()
+plt.gca().set_xticklabels(xticks, fontsize=10)
+
+# Titre et légendes
+plt.title("Top 10 des caractéristiques les plus impactantes\n(Moyenne sur l'historique des prêts)", fontsize=14, pad=15)
+plt.xlabel("Influence moyenne (valeurs absolues SHAP)", fontsize=12)
+plt.ylabel("Caractéristiques des prêts", fontsize=12)
+
+# Sauvegarde
+print("Sauvegarde du graphique...")
+plt.savefig('global_importance_top10.svg')
+plt.show()
+
+# shap_values = np.array(explainer.shap_values(app_train_preprocessed[feature_names]))
+
+# # Moyenne des valeurs absolues SHAP pour chaque feature
+# global_importance = np.mean(np.abs(shap_values), axis=0)
+
+# # Création d'un DataFrame
+# global_importance_df = pd.DataFrame({'Feature': app_train_preprocessed.columns, 'Global importance': global_importance})
+
+# # Sauvegarde feature importance globale
+# print("Sauvegarde feature importance globale...")
+# with open(global_importance_path, 'wb') as f:
+#     pickle.dump(global_importance_df, f)
