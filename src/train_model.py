@@ -186,6 +186,7 @@ preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preproces
 model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
 best_threshold_path = os.path.join(base_dir, '..', 'data', 'processed', 'best_threshold.txt')
 global_importance_path = os.path.join(base_dir, '..', 'data', 'processed', 'global_importance.pkl')
+global_importance_barplot_path = os.path.join(base_dir, '..', '..', 'P08 - Streamlit', 'app', 'assets', 'images', 'global_importance_top10.svg')
 feature_names_path = os.path.join(base_dir, '..', 'data', 'processed', 'feature_names.pkl')
 
 # Chargement des sonnées brutes
@@ -264,18 +265,4 @@ plt.ylabel("Caractéristiques des prêts", fontsize=12)
 
 # Sauvegarde
 print("Sauvegarde du graphique...")
-plt.savefig('global_importance_top10.svg')
-plt.show()
-
-# shap_values = np.array(explainer.shap_values(app_train_preprocessed[feature_names]))
-
-# # Moyenne des valeurs absolues SHAP pour chaque feature
-# global_importance = np.mean(np.abs(shap_values), axis=0)
-
-# # Création d'un DataFrame
-# global_importance_df = pd.DataFrame({'Feature': app_train_preprocessed.columns, 'Global importance': global_importance})
-
-# # Sauvegarde feature importance globale
-# print("Sauvegarde feature importance globale...")
-# with open(global_importance_path, 'wb') as f:
-#     pickle.dump(global_importance_df, f)
+plt.savefig(global_importance_barplot_path, format='svg')
