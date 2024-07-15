@@ -143,7 +143,7 @@ class Prediction(Resource):
             return jsonify({
                 'prediction_proba': prediction_proba.tolist(),
                 'prediction_class': prediction_class.tolist(),
-                'feature_names': processed_data.columns.tolist(),
+                # 'feature_names': processed_data.columns.tolist(),
             })
         except Exception as e:
             print("Erreur pendant la prédiction:", e)
