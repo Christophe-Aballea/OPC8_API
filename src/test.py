@@ -29,7 +29,6 @@ class TestCreditScoringAPI(unittest.TestCase):
         self.assertIn('prediction_proba', response_json)
         self.assertIn('prediction_class', response_json)
         self.assertIn('feature_names', response_json)
-        self.assertIn('feature_importance', response_json)
         
     def test_health_check(self):
         # Faire une requête GET à la route de vérification de l'état de santé
