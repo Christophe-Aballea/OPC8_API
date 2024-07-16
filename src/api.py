@@ -112,17 +112,16 @@ with open(threshold_path, 'r') as threshold_file:
 # Route pour test
 @app.route('/health', methods=['GET'])
 def health_check():
+    hack = request.data
     return jsonify({
         'message': 'L\'API est fonctionnelle',
         'documentation': '/swagger'
     })
-
-if __name__ == '__main__':
-    app.run()
     
 # Route '/'
 @app.route('/')
 def index():
+    hack = request.data
     return jsonify({
         "message": "API Credit Scoring 'Prêt à dépenser'.",
         "documentation": "/swagger/"
@@ -133,8 +132,8 @@ def index():
 class Prediction(Resource):
     @ns.expect(predict_model)
     def post(self):
+        hack = request.data
         try:
-            hack = request.data
             data = request.json
             df = pd.DataFrame(data['data'], columns=data['columns'])
             df = df.replace({None: np.nan})
