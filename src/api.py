@@ -95,6 +95,7 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preprocessor.pkl')
 model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
 threshold_path = os.path.join(base_dir, '..', 'data', 'processed', 'best_threshold.txt')
+features_path = os.path.join(base_dir, '..', 'data', 'processed', 'feature_names.pkl')
 
 # Chargement modèle
 with open(model_path, 'rb') as model_file:
@@ -107,6 +108,10 @@ with open(preprocessor_path, 'rb') as f:
 # Récupération du seuil de classification
 with open(threshold_path, 'r') as threshold_file:
     best_threshold = float(threshold_file.read())
+
+# Récupération nom des features
+with open(features_path, 'rb') as features_file:
+    feature_names = pickle.load(features_file)
 
 
 # Route pour test
@@ -135,7 +140,7 @@ class Prediction(Resource):
     def post(self):
         try:
             data = request.json
-            df = pd.DataFrame(data['data'], columns=data['columns'])
+            df = pd.DataFrame(data['data'], columns=feature_names)
             df = df.replace({None: np.nan})
             processed_data = preprocessor.transform(df)
             prediction_proba = best_model.predict_proba(processed_data)[:, 1]
@@ -143,7 +148,6 @@ class Prediction(Resource):
             return jsonify({
                 'prediction_proba': prediction_proba.tolist(),
                 'prediction_class': prediction_class.tolist(),
-                # 'feature_names': processed_data.columns.tolist(),
             })
         except Exception as e:
             print("Erreur pendant la prédiction:", e)

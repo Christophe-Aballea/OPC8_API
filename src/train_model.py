@@ -186,13 +186,19 @@ preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preproces
 model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
 best_threshold_path = os.path.join(base_dir, '..', 'data', 'processed', 'best_threshold.txt')
 global_importance_path = os.path.join(base_dir, '..', 'data', 'processed', 'global_importance.pkl')
-global_importance_barplot_path = os.path.join(base_dir, '..', '..', 'P08 - Streamlit', 'app', 'assets', 'images', 'global_importance_top10.svg')
+global_importance_barplot_path = os.path.join(base_dir, '..', '..', 'P08 - Streamlit', 'app', 'assets', 'images', 'global_importance_top20.svg')
 feature_names_path = os.path.join(base_dir, '..', 'data', 'processed', 'feature_names.pkl')
 
 # Chargement des sonnées brutes
 print("Chargement des données...")
 app_train = pd.read_csv(app_train_path)
 app_test = pd.read_csv(app_test_path)
+
+app_train = app_train[app_train['CODE_GENDER'] != 'XNA'].reset_index(drop=True)
+app_test = app_test[app_test['CODE_GENDER'] != 'XNA'].reset_index(drop=True)
+
+app_train.to_csv(app_train_path, index=False)
+app_test.to_csv(app_test_path, index=False)
 
 # Préprocess
 print("Preprocessing...")
@@ -236,7 +242,7 @@ shap_values = explainer(app_train_preprocessed)
 # Génération barplot de feature importance global SHAP
 print("Génération du graphique...")
 plt.figure(dpi=300, layout='constrained')
-shap.plots.bar(shap_values, max_display=11, show=False)
+shap.plots.bar(shap_values, max_display=21, show=False)
 
 # Personnalisation
 bars = plt.gca().patches
@@ -259,10 +265,11 @@ xticks = plt.gca().get_xticklabels()
 plt.gca().set_xticklabels(xticks, fontsize=10)
 
 # Titre et légendes
-plt.title("Top 10 des caractéristiques les plus impactantes\n(Moyenne sur l'historique des prêts)", fontsize=14, pad=15)
+plt.title("Top 20 des caractéristiques les plus impactantes\n(Moyenne sur l'historique des prêts)", fontsize=14, pad=15)
 plt.xlabel("Influence moyenne (valeurs absolues SHAP)", fontsize=12)
 plt.ylabel("Caractéristiques des prêts", fontsize=12)
 
 # Sauvegarde
 print("Sauvegarde du graphique...")
 plt.savefig(global_importance_barplot_path, format='svg')
+plt.show()
