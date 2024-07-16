@@ -134,6 +134,7 @@ class Prediction(Resource):
     @ns.expect(predict_model)
     def post(self):
         try:
+            hack = request.data
             data = request.json
             df = pd.DataFrame(data['data'], columns=data['columns'])
             df = df.replace({None: np.nan})
