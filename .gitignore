@@ -4,7 +4,6 @@ __pycache__/
 
 data/raw/application_train.csv
 data/raw/application_test.csv
-data/processed/feature_names.pkl
 data/processed/global_importance.pkl
 
 src/utils/
