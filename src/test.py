@@ -4,7 +4,8 @@ import json
 import pandas as pd
 
 class TestCreditScoringAPI(unittest.TestCase):
-    BASE_URL = "https://failurescore-bc9f53f25e58.herokuapp.com"
+    # BASE_URL = "https://failurescore-bc9f53f25e58.herokuapp.com"
+    BASE_URL = "http://127.0.0.1:5000"
 
     def test_predict(self):
         # Exemple de données pour le test

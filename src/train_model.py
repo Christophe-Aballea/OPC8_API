@@ -14,8 +14,6 @@ from sklearn.preprocessing import LabelEncoder
 import numpy as np
 import re
 
-FIRST_EXECUTION = False
-
 class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(self):
         self.le_dict = {}
@@ -181,12 +179,15 @@ def model(features, labels, n_folds=5):
 # Emplacement des fichiers
 base_dir = os.path.dirname(os.path.abspath(__file__))
 app_train_path = os.path.join(base_dir, '..', 'data', 'raw', 'application_train.csv')
+app_train30_path = os.path.join(base_dir, '..', '..', 'P08 - Streamlit', 'data', 'processed', 'application_train30.parquet')
 app_test_path = os.path.join(base_dir, '..', 'data', 'raw', 'application_test.csv')
+app_test30_path = os.path.join(base_dir, '..', '..', 'P08 - Streamlit', 'data', 'processed', 'application_test30.parquet')
 preprocessor_path = os.path.join(base_dir, '..', 'data', 'processed', 'preprocessor.pkl')
 model_path = os.path.join(base_dir, '..', 'data', 'processed', 'model.pkl')
 best_threshold_path = os.path.join(base_dir, '..', 'data', 'processed', 'best_threshold.txt')
 global_importance_path = os.path.join(base_dir, '..', 'data', 'processed', 'global_importance.pkl')
 global_importance_barplot_path = os.path.join(base_dir, '..', '..', 'P08 - Streamlit', 'app', 'assets', 'images', 'global_importance_top20.svg')
+features_top30_path = os.path.join(base_dir, '..', '..', 'P08 - Streamlit', 'data', 'processed', 'top30_features.pkl')
 feature_names_path = os.path.join(base_dir, '..', 'data', 'processed', 'feature_names.pkl')
 
 # Chargement des sonnées brutes
@@ -194,11 +195,11 @@ print("Chargement des données...")
 app_train = pd.read_csv(app_train_path)
 app_test = pd.read_csv(app_test_path)
 
-app_train = app_train[app_train['CODE_GENDER'] != 'XNA'].reset_index(drop=True)
-app_test = app_test[app_test['CODE_GENDER'] != 'XNA'].reset_index(drop=True)
+# app_train = app_train[app_train['CODE_GENDER'] != 'XNA'].reset_index(drop=True)
+# app_test = app_test[app_test['CODE_GENDER'] != 'XNA'].reset_index(drop=True)
 
-app_train.to_csv(app_train_path, index=False)
-app_test.to_csv(app_test_path, index=False)
+# app_train.to_csv(app_train_path, index=False)
+# app_test.to_csv(app_test_path, index=False)
 
 # Préprocess
 print("Preprocessing...")
@@ -212,6 +213,7 @@ with open(preprocessor_path, 'wb') as f:
 
 
 app_train_preprocessed = preprocessor.transform(app_train.drop(columns=['TARGET', 'SK_ID_CURR']))
+app_test_preprocessed = preprocessor.transform(app_test.drop(columns=['SK_ID_CURR']))
 
 train_labels = app_train['TARGET']
 
@@ -239,6 +241,50 @@ print("Calcul feature importance globale...")
 explainer = shap.TreeExplainer(best_model)
 shap_values = explainer(app_train_preprocessed)
 
+# Top 30 features
+shap_df = pd.DataFrame(shap_values.values, columns=app_train_preprocessed.columns)
+ordered_shap_list = shap_df.abs().mean().sort_values(ascending=False).index.tolist()
+features = []
+for feature in ordered_shap_list:
+    if feature.upper() != feature :
+        new_feature = '_'.join(feature.split('_')[:-1])
+        while new_feature.upper() != new_feature:
+            new_feature = '_'.join(new_feature.split('_')[:-1])
+    elif feature.split('_')[-1] in ('M', 'F', 'MONDAY', 'TUESDAY', 'THURSDAY', 'FRIDAY', 'WEDNESDAY', 'SATURDAY', 'SUNDAY', 'XNA', 'ANOM'):
+        new_feature = '_'.join(feature.split('_')[:-1])
+    else:
+        new_feature = feature
+    if new_feature not in features:
+        features.append(new_feature)
+
+# app_train_top30
+app_train_top30 = pd.DataFrame({'SK_ID_CURR': app_train['SK_ID_CURR'], 'TARGET': app_train['TARGET']})
+raw_cols = app_train.columns
+processed_cols = app_train_preprocessed.columns
+for col in features[:30]:
+    if (col in raw_cols) and app_train[col].nunique() == 2:
+        app_train_top30[col] = app_train[col]
+    elif col in processed_cols:
+        app_train_top30[col] = app_train_preprocessed[col]
+    elif col in raw_cols:
+        app_train_top30[col] = app_train[col]
+
+# app_test_top30
+app_test_top30 = pd.DataFrame({'SK_ID_CURR': app_test['SK_ID_CURR']})
+raw_cols = app_test.columns
+processed_cols = app_test_preprocessed.columns
+for col in features[:30]:
+    if (col in raw_cols) and app_train[col].nunique() == 2:
+        app_test_top30[col] = app_test[col]
+    elif col in processed_cols:
+        app_test_top30[col] = app_test_preprocessed[col]
+    elif col in raw_cols:
+        app_test_top30[col] = app_test[col]
+        
+print("Sauvegarde top 30 features...")
+app_train_top30.to_parquet(app_train30_path)
+app_test_top30.to_parquet(app_test30_path)
+
 # Génération barplot de feature importance global SHAP
 print("Génération du graphique...")
 plt.figure(dpi=300, layout='constrained')
@@ -254,15 +300,17 @@ for bar, annotation in zip(bars, annotations):
     annotation.set_color('dodgerblue')
 
 # Modification du texte "Sum of X other features"
-yticks = plt.gca().get_yticklabels()
-for tick in yticks:
-    if tick.get_text().startswith("Sum of"):
-        tick.set_text("Autres caractéristiques")
-plt.gca().set_yticklabels(yticks, fontsize=10)
+yticks = plt.gca().get_yticks()
+ytick_labels = [tick.get_text() for tick in plt.gca().get_yticklabels()]
+new_ytick_labels = ["Autres caractéristiques" if label.startswith("Sum of") else label for label in ytick_labels]
+plt.gca().set_yticks(yticks)
+plt.gca().set_yticklabels(new_ytick_labels, fontsize=10)
 
 # Taille xticks
-xticks = plt.gca().get_xticklabels()
-plt.gca().set_xticklabels(xticks, fontsize=10)
+xticks = plt.gca().get_xticks()
+plt.gca().set_xticks(xticks)
+plt.gca().set_xticklabels([tick.get_text() for tick in plt.gca().get_xticklabels()], fontsize=10)
+
 
 # Titre et légendes
 plt.title("Top 20 des caractéristiques les plus impactantes\n(Moyenne sur l'historique des prêts)", fontsize=14, pad=15)
@@ -272,4 +320,3 @@ plt.ylabel("Caractéristiques des prêts", fontsize=12)
 # Sauvegarde
 print("Sauvegarde du graphique...")
 plt.savefig(global_importance_barplot_path, format='svg')
-plt.show()

@@ -3,24 +3,14 @@ import re
 import pandas as pd
 import numpy as np
 from flask import Flask, request, jsonify
-from flask_restx import Api, Resource, fields
 import pickle
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder
 
+pd.set_option('future.no_silent_downcasting', True)
+
 # Initialisation Flask
 app = Flask(__name__)
-api = Api(app, version='1.0', title='API Credit Scoring Prêt à dépenser',
-          description='API de prédiction d\'accord/refus de crédit')
-
-ns = api.namespace('predict', description='Prediction')
-
-# Modèle de données pour Swagger
-predict_model = api.model('PredictionModel', {
-    'data': fields.List(fields.List(fields.Raw), required=True, description='List of data values'),
-    'columns': fields.List(fields.String, required=True, description='List of column names')
-})
-
 
 class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(self):
@@ -112,41 +102,28 @@ with open(threshold_path, 'r') as threshold_file:
 # Route pour test
 @app.route('/health', methods=['GET'])
 def health_check():
-    hack = request.data
     return jsonify({
         'message': 'L\'API est fonctionnelle',
         'documentation': '/swagger'
     })
     
-# Route '/'
-@app.route('/')
-def index():
-    hack = request.data
-    return jsonify({
-        "message": "API Credit Scoring 'Prêt à dépenser'.",
-        "documentation": "/swagger/"
-    })
-
 # Route '/predict'
-@ns.route('/')
-class Prediction(Resource):
-    @ns.expect(predict_model)
-    def post(self):
-        hack = request.data
-        try:
-            data = request.json
-            df = pd.DataFrame(data['data'], columns=data['columns'])
-            df = df.replace({None: np.nan})
-            processed_data = preprocessor.transform(df)
-            prediction_proba = best_model.predict_proba(processed_data)[:, 1]
-            prediction_class = (prediction_proba >= best_threshold) * 1
-            return jsonify({
-                'prediction_proba': prediction_proba.tolist(),
-                'prediction_class': prediction_class.tolist(),
-            })
-        except Exception as e:
-            print("Erreur pendant la prédiction:", e)
-            return jsonify({"error": str(e)}), 500
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        data = request.json
+        df = pd.DataFrame(data['data'], columns=data['columns'])
+        df = df.replace({None: pd.NA})
+        processed_data = preprocessor.transform(df)
+        prediction_proba = best_model.predict_proba(processed_data)[:, 1]
+        prediction_class = (prediction_proba >= best_threshold) * 1
+        return jsonify({
+            'prediction_proba': prediction_proba.tolist(),
+            'prediction_class': prediction_class.tolist(),
+        })
+    except Exception as e:
+        print("Erreur pendant la prédiction:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
